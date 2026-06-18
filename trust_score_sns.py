@@ -13,6 +13,9 @@ st.caption("信頼度が高い投稿ほど上に表示されます")
 if "posts" not in st.session_state:
     st.session_state.posts = []
 
+# 古いデータを削除
+st.session_state.posts = []
+
 def calculate_trust(text):
 
     score = 50
