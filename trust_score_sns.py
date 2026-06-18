@@ -1,61 +1,20 @@
 import streamlit as st
+import pandas as pd
+import plotly.express as px
 from datetime import datetime
 
 st.set_page_config(
-    page_title="信頼度スコアSNS Ver.6",
+    page_title="信頼度スコアSNS Ver.7",
     page_icon="🛡️",
     layout="wide"
 )
 
-# -------------------------
-# デザイン
-# -------------------------
-
-st.markdown("""
-<style>
-
-.stApp{
-    background-color:#0E1117;
-    color:white;
-}
-
-.post-card{
-    background-color:#161B22;
-    padding:20px;
-    border-radius:15px;
-    margin-bottom:15px;
-    border:1px solid #30363D;
-}
-
-.trust-high{
-    color:#00FF88;
-    font-weight:bold;
-}
-
-.trust-medium{
-    color:#FFD700;
-    font-weight:bold;
-}
-
-.trust-low{
-    color:#FF4B4B;
-    font-weight:bold;
-}
-
-.big-title{
-    font-size:40px;
-    font-weight:bold;
-    color:#4DA6FF;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# -------------------------
+# ----------------------------
 # 初期化
-# -------------------------
+# ----------------------------
 
 if "posts" not in st.session_state:
+
     st.session_state.posts = [
         {
             "user":"運営",
@@ -67,208 +26,302 @@ if "posts" not in st.session_state:
         }
     ]
 
-# -------------------------
+# ----------------------------
 # 信頼度計算
-# -------------------------
+# ----------------------------
 
 def calculate_trust(text):
 
     score = 50
 
     positive_words = [
-        "出典","証拠","研究",
-        "論文","統計","データ"
+        "出典",
+        "証拠",
+        "研究",
+        "論文",
+        "統計",
+        "データ"
     ]
 
     negative_words = [
-        "絶対","100%",
-        "必ず","確実","噂"
+        "絶対",
+        "100%",
+        "必ず",
+        "確実",
+        "噂"
     ]
 
     reasons = []
 
     for word in positive_words:
+
         if word in text:
+
             score += 8
-            reasons.append(f"✅ {word}を含む")
+            reasons.append(f"✓ {word}")
 
     for word in negative_words:
+
         if word in text:
+
             score -= 8
-            reasons.append(f"⚠ {word}を含む")
+            reasons.append(f"⚠ {word}")
 
     score = max(0,min(score,100))
 
     return score,reasons
 
-# -------------------------
-# タイトル
-# -------------------------
-
-st.markdown(
-    '<p class="big-title">🛡️ 信頼度スコアSNS Ver.6</p>',
-    unsafe_allow_html=True
-)
-
-st.caption("誤情報対策を目的とした探究用SNS")
-
-# -------------------------
+# ----------------------------
 # サイドバー
-# -------------------------
+# ----------------------------
 
 with st.sidebar:
 
-    st.header("👤 ユーザー")
+    st.title("🛡️ メニュー")
+
+    page = st.radio(
+        "ページ選択",
+        ["📱タイムライン","📊分析"]
+    )
+
+    st.divider()
 
     username = st.text_input(
         "ユーザー名",
         value="匿名ユーザー"
     )
 
-    st.markdown("---")
-
-    st.subheader("📊 統計")
-
-    st.metric(
-        "投稿数",
-        len(st.session_state.posts)
-    )
-
-# -------------------------
-# 投稿
-# -------------------------
-
-st.subheader("✏️ 投稿する")
-
-post_text = st.text_area(
-    "投稿内容を入力"
-)
-
-if st.button("投稿"):
-
-    if post_text.strip():
-
-        trust,reasons = calculate_trust(post_text)
-
-        st.session_state.posts.append({
-
-            "user":username,
-            "text":post_text,
-            "trust":trust,
-            "likes":0,
-            "reports":0,
-            "time":datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "reasons":reasons
-
-        })
-
-        st.success("投稿しました！")
-
-# -------------------------
-# ランキング
-# -------------------------
-
-st.subheader("🏆 信頼度ランキング")
-
-ranking = sorted(
-    st.session_state.posts,
-    key=lambda x:x["trust"],
-    reverse=True
-)
-
-for i,p in enumerate(ranking[:3]):
-
-    st.write(
-        f"{i+1}位  {p['user']}  (信頼度 {p['trust']})"
-    )
-
-st.divider()
-
-# -------------------------
+# ----------------------------
 # タイムライン
-# -------------------------
+# ----------------------------
 
-st.subheader("📱 タイムライン")
+if page == "📱タイムライン":
 
-posts = sorted(
-    st.session_state.posts,
-    key=lambda x:x["trust"],
-    reverse=True
-)
+    st.title("🛡️ 信頼度スコアSNS")
 
-for i,post in enumerate(posts):
-
-    st.markdown(
-        '<div class="post-card">',
-        unsafe_allow_html=True
+    st.caption(
+        "信頼度の高い投稿ほど上に表示"
     )
 
-    st.markdown(
-        f"### 👤 {post['user']}"
+    st.subheader("✏️ 投稿")
+
+    post_text = st.text_area(
+        "投稿内容"
     )
 
-    st.caption(post["time"])
+    if st.button("投稿する"):
 
-    st.write(post["text"])
+        if post_text.strip():
 
-    trust = post["trust"]
+            trust,reasons = calculate_trust(
+                post_text
+            )
 
-    st.progress(trust)
+            st.session_state.posts.append({
 
-    if trust >= 80:
+                "user":username,
+                "text":post_text,
+                "trust":trust,
+                "likes":0,
+                "reports":0,
+                "reasons":reasons,
+                "time":datetime.now().strftime(
+                    "%Y-%m-%d %H:%M"
+                )
 
-        st.markdown(
-            f'<p class="trust-high">🟢 信頼度 {trust}</p>',
-            unsafe_allow_html=True
+            })
+
+            st.success("投稿しました")
+
+    st.divider()
+
+    sort_option = st.selectbox(
+        "並び替え",
+        [
+            "信頼度順",
+            "新着順",
+            "いいね順"
+        ]
+    )
+
+    if sort_option == "信頼度順":
+
+        posts = sorted(
+            st.session_state.posts,
+            key=lambda x:x["trust"],
+            reverse=True
         )
 
-    elif trust >= 60:
+    elif sort_option == "いいね順":
 
-        st.markdown(
-            f'<p class="trust-medium">🟡 信頼度 {trust}</p>',
-            unsafe_allow_html=True
+        posts = sorted(
+            st.session_state.posts,
+            key=lambda x:x["likes"],
+            reverse=True
         )
 
     else:
 
-        st.markdown(
-            f'<p class="trust-low">🔴 信頼度 {trust}</p>',
-            unsafe_allow_html=True
+        posts = list(
+            reversed(
+                st.session_state.posts
+            )
         )
 
-        st.warning(
-            "⚠ 未確認情報の可能性があります"
-        )
+    st.subheader("📱 タイムライン")
 
-    with st.expander("🤖 AI評価を見る"):
+    for i,post in enumerate(posts):
 
-        if "reasons" in post:
+        with st.container():
 
-            for r in post["reasons"]:
-                st.write(r)
+            st.markdown(
+                f"### 👤 {post['user']}"
+            )
 
-    col1,col2,col3 = st.columns(3)
+            st.caption(post["time"])
 
-    with col1:
+            st.write(post["text"])
 
-        if st.button(
-            f"👍 {post['likes']}",
-            key=f"like{i}"
-        ):
-            post["likes"] += 1
-            st.rerun()
+            trust = post["trust"]
 
-    with col2:
+            st.progress(trust)
 
-        if st.button(
-            f"🚨 {post['reports']}",
-            key=f"report{i}"
-        ):
-            post["reports"] += 1
-            st.rerun()
+            if trust >= 80:
 
-    with col3:
+                st.success(
+                    f"🟢 信頼度 {trust}"
+                )
 
-        st.write(f"🏆 #{i+1}")
+            elif trust >= 60:
+
+                st.info(
+                    f"🟡 信頼度 {trust}"
+                )
+
+            else:
+
+                st.error(
+                    f"🔴 信頼度 {trust}"
+                )
+
+                st.warning(
+                    "⚠ 注意ラベル: 未確認情報の可能性があります"
+                )
+
+            with st.expander(
+                "🤖 AI評価理由"
+            ):
+
+                if "reasons" in post:
+
+                    for r in post["reasons"]:
+
+                        st.write(r)
+
+            col1,col2,col3 = st.columns(3)
+
+            with col1:
+
+                if st.button(
+                    f"👍 {post['likes']}",
+                    key=f"like{i}"
+                ):
+
+                    post["likes"] += 1
+                    st.rerun()
+
+            with col2:
+
+                if st.button(
+                    f"🚨 {post['reports']}",
+                    key=f"report{i}"
+                ):
+
+                    post["reports"] += 1
+                    st.rerun()
+
+            with col3:
+
+                st.write(
+                    f"🏆 #{i+1}"
+                )
+
+            st.divider()
+
+# ----------------------------
+# 分析ページ
+# ----------------------------
+
+else:
+
+    st.title("📊 分析ダッシュボード")
+
+    df = pd.DataFrame(
+        st.session_state.posts
+    )
+
+    total_posts = len(df)
+
+    avg_trust = round(
+        df["trust"].mean(),
+        1
+    )
+
+    high_ratio = round(
+        (df["trust"] >= 80).mean()*100,
+        1
+    )
+
+    c1,c2,c3 = st.columns(3)
+
+    c1.metric(
+        "投稿数",
+        total_posts
+    )
+
+    c2.metric(
+        "平均信頼度",
+        avg_trust
+    )
+
+    c3.metric(
+        "高信頼投稿割合",
+        f"{high_ratio}%"
+    )
 
     st.divider()
+
+    st.subheader(
+        "📈 信頼度分布"
+    )
+
+    fig = px.histogram(
+        df,
+        x="trust",
+        nbins=10
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+    st.subheader(
+        "🚨 通報数ランキング"
+    )
+
+    top_reports = df.sort_values(
+        "reports",
+        ascending=False
+    )
+
+    fig2 = px.bar(
+        top_reports.head(10),
+        x="user",
+        y="reports"
+    )
+
+    st.plotly_chart(
+        fig2,
+        use_container_width=True
+    )
