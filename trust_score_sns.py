@@ -44,6 +44,7 @@ def calculate_trust(text):
     ]
 
     negative_words = [
+        "洗脳",
         "絶対",
         "100%",
         "必ず",
